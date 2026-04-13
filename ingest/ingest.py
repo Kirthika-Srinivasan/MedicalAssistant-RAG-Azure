@@ -83,7 +83,7 @@ def create_index():
         semantic_search=SemanticSearch(configurations=[semantic_config])
     )
     index_client.create_or_update_index(index)
-    print(f"✅ Index '{INDEX_NAME}' created")
+    print(f"Index '{INDEX_NAME}' created")
 
 
 def embed(text: str) -> list:
@@ -100,12 +100,12 @@ def ingest(max_docs: int = 300):
     drugs, symptoms, treatments. Uses the answer as the KB document
     and the question as metadata for better retrieval.
     """
-    print("📥 Loading MedQuAD from HuggingFace...")
+    print("Loading MedQuAD from HuggingFace...")
     dataset = load_dataset(
         "keivalya/MedQuad-MedicalQnADataset",
         split="train"
     )
-    print(f"   Loaded {len(dataset)} Q&A pairs")
+    print(f" Loaded {len(dataset)} Q&A pairs")
 
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=600,
@@ -152,9 +152,16 @@ def ingest(max_docs: int = 300):
         search_client.upload_documents(batch)
         total += len(batch)
 
-    print(f"\n✅ Ingested {total} chunks from {min(max_docs, len(dataset))} Q&A pairs")
+    print(f"\nIngested {total} chunks from {min(max_docs, len(dataset))} Q&A pairs")
 
 
 if __name__ == "__main__":
+    # Delete existing index if it exists (clean slate)
+    try:
+        index_client.delete_index(INDEX_NAME)
+        print(f"Deleted existing index '{INDEX_NAME}'")
+    except Exception:
+        pass  # Index didn't exist, that's fine
+
     create_index()
-    ingest(max_docs=300)  # ~300 docs well within Azure free tier quota
+    ingest(max_docs=300)
