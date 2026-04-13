@@ -1,6 +1,5 @@
-# MedicalAssistant-RAG-Azure
- A patient-facing health information assistant that answers questions about diseases, medications, symptoms, and treatments.
 # 🏥 Medical Q&A RAG Assistant
+ A patient-facing health information assistant that answers questions about diseases, medications, symptoms, and treatments.
 
 > Production-grade RAG system built on **Azure OpenAI + Azure AI Search**
 > using the **NIH MedQuAD dataset** (47,457 medical Q&A pairs).
