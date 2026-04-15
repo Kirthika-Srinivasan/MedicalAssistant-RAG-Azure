@@ -1,10 +1,14 @@
 import streamlit as st
 import requests
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
-API_URL = os.getenv("API_URL", "http://localhost:8000")
+def get_secret(key, default=""):
+    try:
+        return st.secrets[key]
+    except Exception:
+        return os.getenv(key, default) 
+    
+API_URL = get_secret("API_URL", "http://localhost:8000")
 
 st.set_page_config(
     page_title="Medical Q&A Assistant",
@@ -28,7 +32,7 @@ st.warning(
 with st.sidebar:
     st.markdown("### 🏗️ Architecture")
     st.markdown("""
-    - **LLM:** Azure OpenAI GPT-4o-mini  
+    - **LLM:** Azure OpenAI GPT-5.4-mini 
     - **Retrieval:** Azure AI Search  
       (vector + BM25 + semantic reranking)  
     - **Safety:** Azure Content Safety  
