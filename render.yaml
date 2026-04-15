@@ -1,0 +1,29 @@
+# render.yaml — place in MedicalAssistant-RAG-Azure/ root
+services:
+  - type: web
+    name: medical-rag-api
+    runtime: python
+    rootDir: app
+    buildCommand: pip install -r ../requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 8000
+    envVars:
+      - key: AZURE_OPENAI_ENDPOINT
+        sync: false
+      - key: AZURE_OPENAI_API_KEY
+        sync: false
+      - key: AZURE_OPENAI_CHAT_DEPLOYMENT
+        sync: false
+      - key: AZURE_OPENAI_EMBEDDING_DEPLOYMENT
+        sync: false
+      - key: AZURE_OPENAI_API_VERSION
+        sync: false
+      - key: AZURE_SEARCH_ENDPOINT
+        sync: false
+      - key: AZURE_SEARCH_KEY
+        sync: false
+      - key: AZURE_SEARCH_INDEX
+        sync: false
+      - key: AZURE_CONTENT_SAFETY_ENDPOINT
+        sync: false
+      - key: AZURE_CONTENT_SAFETY_KEY
+        sync: false
