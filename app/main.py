@@ -6,9 +6,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from app.rag import rag_query, get_specialist_recommendation
-from app.guardrails import check_content
-from app.function_calling import route_query
+from rag import rag_query, get_specialist_recommendation
+from guardrails import check_content
+from function_calling import route_query
 import json, os
 
 load_dotenv()
