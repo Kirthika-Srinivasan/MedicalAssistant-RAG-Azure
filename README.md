@@ -5,6 +5,7 @@
 > using the **NIH MedQuAD dataset** (47,457 medical Q&A pairs).
 > Features hybrid retrieval, function calling, content safety guardrails,
 > and RAGAS evaluation — deployed as FastAPI + Streamlit.
+> APIs are hosted in Render.com
 
 *For informational purposes only. Not a substitute for professional medical advice.*
 
