@@ -6,9 +6,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from rag import rag_query, get_specialist_recommendation
-from guardrails import check_content
-from function_calling import route_query
+from app.rag import rag_query, get_specialist_recommendation
+from app.guardrails import check_content
+from app.function_calling import route_query
 import json, os
 
 load_dotenv()
@@ -72,7 +72,16 @@ def query(request: QueryRequest):
     if request.use_function_calling:
         routing = route_query(request.question)
         routed_action = routing.get("action", "search_knowledge_base")
-        topic_type = routing.get("topic_type")
+
+        # Use refined query if it's meaningful, otherwise keep original
+        refined_query = routing.get("query", "")
+        search_query = refined_query if len(refined_query) > 10 else request.question
+
+        result = rag_query(
+            search_query,          #use refined or original
+            top_k=request.top_k,
+            topic_type=None        #always None now
+        )
 
         # Emergency redirect
         if routed_action == "emergency_redirect":

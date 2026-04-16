@@ -34,7 +34,11 @@ TOOLS = [
                 "properties": {
                     "query": {
                         "type": "string",
-                        "description": "Refined search query"
+                        "description": (
+                            "The search query — use the user's original question "
+                            "or a natural rephrasing. Keep medical terms intact. "
+                            "Do NOT over-simplify."
+                        )
                     },
                     "topic_type": {
                         "type": "string",
@@ -97,6 +101,46 @@ TOOLS = [
 
 
 def route_query(user_query: str) -> dict:
+    print(f"\n--- FUNCTION CALLING DEBUG ---")
+    print(f"Query: {user_query}")
+    
+    try:
+        response = client.chat.completions.create(
+            model=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"),
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a medical query router. Analyse the user's "
+                        "question and select the most appropriate tool. "
+                        "Default to search_knowledge_base for most questions. "
+                        "Only use emergency_redirect for clear emergencies."
+                    )
+                },
+                {"role": "user", "content": user_query}
+            ],
+            tools=TOOLS,
+            tool_choice="auto",
+            temperature=0
+        )
+        
+        message = response.choices[0].message
+        print(f"Tool calls: {message.tool_calls}")
+        print(f"Message content: {message.content}")
+        
+        if message.tool_calls:
+            tool = message.tool_calls[0]
+            args = json.loads(tool.function.arguments)
+            result = {"action": tool.function.name, **args}
+            print(f"Routing result: {result}")
+            return result
+            
+        print("No tool called — using fallback")
+        return {"action": "search_knowledge_base", "query": user_query}
+        
+    except Exception as e:
+        print(f"❌ Function calling failed: {e}")
+        return {"action": "search_knowledge_base", "query": user_query}
     """
     Uses function calling to decide the right action for a medical query.
     Returns a dict with "action" key plus relevant parameters.

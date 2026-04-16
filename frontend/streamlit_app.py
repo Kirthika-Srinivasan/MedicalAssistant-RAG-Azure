@@ -1,14 +1,10 @@
 import streamlit as st
 import requests
 import os
+from dotenv import load_dotenv
 
-def get_secret(key, default=""):
-    try:
-        return st.secrets[key]
-    except Exception:
-        return os.getenv(key, default) 
-    
-API_URL = get_secret("API_URL", "http://localhost:8000")
+load_dotenv()
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 st.set_page_config(
     page_title="Medical Q&A Assistant",
@@ -32,7 +28,7 @@ st.warning(
 with st.sidebar:
     st.markdown("### 🏗️ Architecture")
     st.markdown("""
-    - **LLM:** Azure OpenAI GPT-5.4-mini 
+    - **LLM:** Azure OpenAI GPT-4o-mini  
     - **Retrieval:** Azure AI Search  
       (vector + BM25 + semantic reranking)  
     - **Safety:** Azure Content Safety  
@@ -61,28 +57,71 @@ with st.sidebar:
     top_k = st.slider("Sources to retrieve (k)", 1, 10, 5)
     use_fc = st.checkbox("Function calling routing", value=True)
 
+def handle_question(question: str):
+    """Sends question to FastAPI, renders the response."""
+    st.session_state.messages.append({"role": "user", "content": question})
+
+    with st.chat_message("user"):
+        st.write(question)
+
+    with st.chat_message("assistant"):
+        with st.spinner("Searching NIH knowledge base..."):
+            try:
+                resp = requests.post(
+                    f"{API_URL}/query",
+                    json={
+                        "question": question,
+                        "top_k": top_k,
+                        "use_function_calling": use_fc
+                    },
+                    timeout=60
+                )
+
+                if resp.status_code == 400:
+                    msg = f"🚫 {resp.json().get('detail', 'Blocked by safety policy')}"
+                    st.error(msg)
+                    st.session_state.messages.append(
+                        {"role": "assistant", "content": msg}
+                    )
+                    return
+
+                if resp.status_code == 200:
+                    data = resp.json()
+                    st.write(data["answer"])
+
+                    c1, c2, c3 = st.columns(3)
+                    c1.metric("⏱ Latency",   f"{data['latency_ms']}ms")
+                    c2.metric("🔍 Retrieval", f"{data['retrieval_ms']}ms")
+                    c3.metric("🪙 Tokens",    data["tokens_used"])
+
+                    action_labels = {
+                        "search_knowledge_base": "🔍 KB Search",
+                        "recommend_specialist":  "👨‍⚕️ Specialist",
+                        "emergency_redirect":    "🚨 Emergency",
+                    }
+                    st.caption(
+                        f"🔀 Routed → **{action_labels.get(data['routed_action'], data['routed_action'])}**"
+                    )
+
+                    if data.get("sources"):
+                        with st.expander("📚 Sources from NIH knowledge base"):
+                            for src in data["sources"][:3]:
+                                st.caption(f"• {src}")
+
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": data["answer"],
+                        "meta": data
+                    })
+
+            except requests.exceptions.Timeout:
+                st.error("Request timed out — try again.")
+            except requests.exceptions.ConnectionError:
+                st.error("Cannot reach API. Check that it's running.")
+
 # Chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
-
-# Suggested questions
-if not st.session_state.messages:
-    st.markdown("### 💡 Example questions")
-    suggestions = [
-        "What are the symptoms of Type 2 diabetes?",
-        "What is the treatment for high blood pressure?",
-        "What causes asthma and how is it managed?",
-        "What are the side effects of metformin?",
-        "What are the early signs of Alzheimer's disease?",
-        "How is depression diagnosed and treated?"
-    ]
-    cols = st.columns(3)
-    for i, s in enumerate(suggestions):
-        if cols[i % 3].button(s, key=f"s{i}"):
-            st.session_state.messages.append(
-                {"role": "user", "content": s}
-            )
-            st.rerun()
 
 # Display chat history
 for msg in st.session_state.messages:
@@ -108,62 +147,24 @@ for msg in st.session_state.messages:
                     for src in m["sources"][:3]:
                         st.caption(f"• {src}")
 
+# Suggested questions
+if not st.session_state.messages:
+    st.markdown("### 💡 Example questions")
+    suggestions = [
+        "How is high blood pressure treated and what lifestyle changes help?",
+        "I have severe chest pain and I can't breathe properly - what should I do?",
+        "I have persistent stomach pain and bloating - what type of doctor should I see?",
+        "What causes chronic kidney disease and who is most at risk?",
+        "I have high a fever and nausea. What should I do?",
+        "How can I prevent getting Type 2 diabetes if it runs in my family?"
+    ]
+    cols = st.columns(3)
+    for i, s in enumerate(suggestions):
+        if cols[i % 3].button(s, key=f"s{i}"):
+            handle_question(s)
+            st.rerun()
+
+
 # Chat input
 if question := st.chat_input("Ask a medical question..."):
-    st.session_state.messages.append(
-        {"role": "user", "content": question}
-    )
-    with st.chat_message("user"):
-        st.write(question)
-
-    with st.chat_message("assistant"):
-        with st.spinner("Searching NIH knowledge base..."):
-            try:
-                resp = requests.post(
-                    f"{API_URL}/query",
-                    json={
-                        "question": question,
-                        "top_k": top_k,
-                        "use_function_calling": use_fc
-                    },
-                    timeout=30
-                )
-
-                if resp.status_code == 400:
-                    st.error(
-                        f"🚫 {resp.json().get('detail', 'Blocked by safety policy')}"
-                    )
-                elif resp.status_code == 200:
-                    data = resp.json()
-                    st.write(data["answer"])
-
-                    c1, c2, c3 = st.columns(3)
-                    c1.metric("⏱ Latency", f"{data['latency_ms']}ms")
-                    c2.metric("🔍 Retrieval", f"{data['retrieval_ms']}ms")
-                    c3.metric("🪙 Tokens", data["tokens_used"])
-
-                    action_labels = {
-                        "search_knowledge_base": "🔍 KB Search",
-                        "recommend_specialist": "👨‍⚕️ Specialist Rec.",
-                        "emergency_redirect": "🚨 Emergency",
-                    }
-                    st.caption(
-                        f"Routed → **{action_labels.get(data['routed_action'], data['routed_action'])}**"
-                    )
-
-                    if data.get("sources"):
-                        with st.expander("📚 Related questions from knowledge base"):
-                            for src in data["sources"][:3]:
-                                st.caption(f"• {src}")
-
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": data["answer"],
-                        "meta": data
-                    })
-
-            except requests.exceptions.ConnectionError:
-                st.error(
-                    "Cannot connect to API. "
-                    "Run: `uvicorn app.main:app --reload`"
-                )
+    handle_question(question)
