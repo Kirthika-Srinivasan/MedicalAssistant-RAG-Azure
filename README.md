@@ -6,18 +6,19 @@
 > Features hybrid retrieval, function calling, content safety guardrails,
 > and RAGAS evaluation — deployed as FastAPI + Streamlit.
 
-⚠️ *For informational purposes only. Not a substitute for professional medical advice.*
+*For informational purposes only. Not a substitute for professional medical advice.*
 
 **🔗 Live Demo:** https://medicalassistant-rag-azure-by-kirthika.streamlit.app/
+
 
 ## 📊 RAGAS Evaluation Results
 
 | Metric | Score |
 |--------|-------|
-| Faithfulness | 0.88 |
-| Answer Relevancy | 0.90 |
-| Context Precision | 0.84 |
-| Context Recall | 0.81 |
+| Faithfulness | 0.72 |
+| Answer Relevancy | 0.80 |
+| Context Precision | 0.96 |
+| Context Recall | 0.95 |
 
 *Evaluated on 20 held-out MedQuAD samples.*
 
@@ -72,9 +73,14 @@ FastAPI → Streamlit UI
 
 ```bash
 git clone https://github.com/Kirthika-Srinivasan/medical-rag-assistant
+
 cd medical-rag-assistant
-python -m venv .venv && .venv\Scripts\activate
+
+python -m venv .venv 
+.venv\Scripts\activate
+
 pip install -r requirements.txt
+
 cp .env.sample .env  # fill in your Azure credentials
 
 # Ingest data (run once)
@@ -87,5 +93,6 @@ uvicorn app.main:app --reload
 streamlit run frontend/streamlit_app.py
 
 # Run evaluation
-python app/evaluate.py
+python app/evaluate.py #Stores scores to eval_results.json
+
 ```
