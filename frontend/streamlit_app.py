@@ -151,7 +151,7 @@ for msg in st.session_state.messages:
 if not st.session_state.messages:
     st.markdown("### 💡 Example questions")
     suggestions = [
-        "How is high blood pressure treated and what lifestyle changes help?",
+        "How is high bp treated and what lifestyle changes help?",
         "I have severe chest pain and I can't breathe properly - what should I do?",
         "I have persistent stomach pain and bloating - what type of doctor should I see?",
         "What causes chronic kidney disease and who is most at risk?",
